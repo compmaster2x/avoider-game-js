@@ -9,10 +9,14 @@ let timeSurvived = 0;
 let bullets = [];
 let timerInterval;
 let bestResult = localStorage.getItem('bestResult') || 0;
+let meteorsDestroyed = 0;
+let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
+
 
 
 function spawnObstacle() {
-    const size = 30;
+    const size = 20 + Math.random() * 40; // random meteor size
+
     const x = Math.random() * (canvas.width - size);
     const y = -size;
     const speed = 2 + Math.random() * 3;
@@ -44,6 +48,12 @@ function update() {
     bestResult = timeSurvived;
     localStorage.setItem('bestResult', bestResult);
 }
+
+if (meteorsDestroyed > bestDestroyed) {
+    bestDestroyed = meteorsDestroyed;
+    localStorage.setItem('bestDestroyed', bestDestroyed);
+}
+
 }
 
 
@@ -63,13 +73,16 @@ if (timeSurvived > bestResult) {
             bullet.y < obs.y + obs.size &&
             bullet.y + bullet.size > obs.y
         ) {
-            // Удаляем и пулю, и метеор
             obstacles.splice(obstacles.indexOf(obs), 1);
             bullets.splice(bullets.indexOf(bullet), 1);
-            break; // выходим из цикла, так как пули уже нет
+
+            meteorsDestroyed++; // Увеличиваем счётчик сбитых
+
+            break;
         }
     }
 }
+
 
         // Двигаем пули
 for (let bullet of bullets) {
@@ -100,33 +113,43 @@ function draw() {
         ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
     }
 
+    // Draw bullets
     ctx.fillStyle = '#ff0';
-for (let bullet of bullets) {
-    ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size);
-}    
+    for (let bullet of bullets) {
+        ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size);
+    }
+
+    // Нарисовать таймер и destroyed в левом верхнем углу
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(`Time: ${timeSurvived}s`, 10, 60);
+    ctx.fillText(`Destroyed: ${meteorsDestroyed}`, 10, 90);
 
     if (gameOver) {
-    ctx.fillStyle = '#fff';
-    ctx.font = '40px sans-serif';
-    ctx.fillText('Game Over', 100, 250);
+        // Game over и best надписи в центре
+        ctx.fillStyle = '#fff';
+        ctx.font = '40px sans-serif';
+        ctx.fillText('Game Over', 100, 250);
 
-    ctx.font = '20px sans-serif';
-    ctx.fillText(`Your time: ${timeSurvived}s`, 120, 300);
+        ctx.font = '20px sans-serif';
+        ctx.fillText(`Your time: ${timeSurvived}s`, 120, 300);
 
-    if (timeSurvived >= bestResult) {
-        ctx.fillText(`Best result!`, 140, 330);
-    } else {
-        ctx.fillText(`Best: ${bestResult}s`, 140, 330);
+        if (timeSurvived >= bestResult) {
+            ctx.fillText(`Best result!`, 140, 330);
+        } else {
+            ctx.fillText(`Best: ${bestResult}s`, 140, 330);
+        }
+
+        ctx.fillText(`Destroyed: ${meteorsDestroyed}`, 120, 360);
+
+        if (meteorsDestroyed >= bestDestroyed) {
+            ctx.fillText(`Record destroyed!`, 130, 390);
+        } else {
+            ctx.fillText(`Best destroyed: ${bestDestroyed}`, 130, 390);
+        }
     }
 }
 
-
-    // Нарисовать таймер
-ctx.fillStyle = '#fff';
-ctx.font = '20px sans-serif';
-ctx.fillText(`Time: ${timeSurvived}s`, 10, 60);
-
-}
 
 function restartGame() {
     player = { x: 200, y: 450, size: 30, speed: 5 };
@@ -134,6 +157,8 @@ function restartGame() {
     bullets = [];
     gameOver = false;
     timeSurvived = 0;
+    meteorsDestroyed = 0;
+
 
     // Запускаем таймер заново
     clearInterval(timerInterval);
