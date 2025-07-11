@@ -127,6 +127,25 @@ ctx.font = '20px sans-serif';
 ctx.fillText(`Time: ${timeSurvived}s`, 10, 60);
 
 }
+
+function restartGame() {
+    player = { x: 200, y: 450, size: 30, speed: 5 };
+    obstacles = [];
+    bullets = [];
+    gameOver = false;
+    timeSurvived = 0;
+
+    // Запускаем таймер заново
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if (!gameOver) {
+            timeSurvived++;
+        }
+    }, 1000);
+
+    gameLoop();
+}
+
 //code for timer
 timerInterval = setInterval(() => {
     if (!gameOver) {
@@ -160,8 +179,15 @@ document.addEventListener('keydown', e => {
     keys[e.key] = true;
 
     if (e.key === ' ') {
+    if (!gameOver) {
+        // Стреляем
         bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
+    } else {
+        // game restart
+        restartGame();
     }
+}
+
 });
 
 
