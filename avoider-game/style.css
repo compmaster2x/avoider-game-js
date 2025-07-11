@@ -1,8 +1,13 @@
+*{
+    padding: 0;
+    margin: 0;
+}
 body{
     display: flex;
     justify-content: center;
     min-height: 100vh;
     background: linear-gradient(110deg, blue, rgb(62, 231, 62));
+    
 }
 
 canvas{

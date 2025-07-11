@@ -6,6 +6,7 @@ let obstacles = [];
 
 let gameOver = false;
 let timeSurvived = 0;
+let bullets = [];
 let timerInterval;
 let bestResult = localStorage.getItem('bestResult') || 0;
 
@@ -53,6 +54,31 @@ if (timeSurvived > bestResult) {
 
 
         }
+
+        for (let bullet of bullets) {
+    for (let obs of obstacles) {
+        if (
+            bullet.x < obs.x + obs.size &&
+            bullet.x + bullet.size > obs.x &&
+            bullet.y < obs.y + obs.size &&
+            bullet.y + bullet.size > obs.y
+        ) {
+            // Удаляем и пулю, и метеор
+            obstacles.splice(obstacles.indexOf(obs), 1);
+            bullets.splice(bullets.indexOf(bullet), 1);
+            break; // выходим из цикла, так как пули уже нет
+        }
+    }
+}
+
+        // Двигаем пули
+for (let bullet of bullets) {
+    bullet.y -= bullet.speed;
+}
+
+// Удаляем пули, которые улетели за экран
+bullets = bullets.filter(bullet => bullet.y + bullet.size > 0);
+
     }
 
     // Remove off-screen obstacles
@@ -74,7 +100,10 @@ function draw() {
         ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
     }
 
-    
+    ctx.fillStyle = '#ff0';
+for (let bullet of bullets) {
+    ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size);
+}    
 
     if (gameOver) {
     ctx.fillStyle = '#fff';
@@ -126,5 +155,14 @@ document.addEventListener('keyup', e => {
 setInterval(() => {
     if (!gameOver) spawnObstacle();
 }, 1000);
+
+document.addEventListener('keydown', e => {
+    keys[e.key] = true;
+
+    if (e.key === ' ') {
+        bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
+    }
+});
+
 
 gameLoop();
