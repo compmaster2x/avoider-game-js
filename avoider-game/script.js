@@ -1,10 +1,13 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let player = { x: 200, y: 550, size: 30, speed: 5 };
+let player = { x: 200, y: 450, size: 30, speed: 5 };
 let obstacles = [];
 let score = 0;
 let gameOver = false;
+let timeSurvived = 0;
+let timerInterval;
+
 
 function spawnObstacle() {
     const size = 30;
@@ -17,6 +20,13 @@ function spawnObstacle() {
 function update() {
     if (gameOver) return;
 
+    if (keys['ArrowLeft'] && player.x > 0) {
+        player.x -= player.speed;
+    }
+    if (keys['ArrowRight'] && player.x < canvas.width - player.size) {
+        player.x += player.speed;
+    }
+
     // Move obstacles
     for (let obs of obstacles) {
         obs.y += obs.speed;
@@ -28,6 +38,10 @@ function update() {
             obs.y + obs.size > player.y
         ) {
             gameOver = true;
+            if (gameOver) {
+    clearInterval(timerInterval);
+}
+
         }
     }
 
@@ -56,11 +70,24 @@ function draw() {
     ctx.fillText(`Score: ${score}`, 10, 30);
 
     if (gameOver) {
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#000';
         ctx.font = '40px sans-serif';
         ctx.fillText('Game Over', 100, 300);
     }
+
+    // Нарисовать таймер
+ctx.fillStyle = '#fff';
+ctx.font = '20px sans-serif';
+ctx.fillText(`Time: ${timeSurvived}s`, 10, 60);
+
 }
+//code for timer
+timerInterval = setInterval(() => {
+    if (!gameOver) {
+        timeSurvived++;
+    }
+}, 1000);
+
 
 function gameLoop() {
     update();
@@ -68,14 +95,15 @@ function gameLoop() {
     if (!gameOver) requestAnimationFrame(gameLoop);
 }
 
+let keys = {};
+
 document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft' && player.x > 0) {
-        player.x -= player.speed;
-    }
-    if (e.key === 'ArrowRight' && player.x < canvas.width - player.size) {
-        player.x += player.speed;
-    }
+    keys[e.key] = true;
 });
+document.addEventListener('keyup', e => {
+    keys[e.key] = false;
+});
+
 
 // Spawn new obstacles every second
 setInterval(() => {
