@@ -3,10 +3,11 @@ const ctx = canvas.getContext('2d');
 
 let player = { x: 200, y: 450, size: 30, speed: 5 };
 let obstacles = [];
-let score = 0;
+
 let gameOver = false;
 let timeSurvived = 0;
 let timerInterval;
+let bestResult = localStorage.getItem('bestResult') || 0;
 
 
 function spawnObstacle() {
@@ -38,9 +39,18 @@ function update() {
             obs.y + obs.size > player.y
         ) {
             gameOver = true;
-            if (gameOver) {
-    clearInterval(timerInterval);
+            if (timeSurvived > bestResult) {
+    bestResult = timeSurvived;
+    localStorage.setItem('bestResult', bestResult);
 }
+}
+
+
+if (timeSurvived > bestResult) {
+    bestResult = timeSurvived;
+    localStorage.setItem('bestResult', bestResult);
+}
+
 
         }
     }
@@ -48,8 +58,8 @@ function update() {
     // Remove off-screen obstacles
     obstacles = obstacles.filter(obs => obs.y < canvas.height);
 
-    score++;
-}
+
+
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -64,16 +74,23 @@ function draw() {
         ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
     }
 
-    // Draw score
-    ctx.fillStyle = '#fff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(`Score: ${score}`, 10, 30);
+    
 
     if (gameOver) {
-        ctx.fillStyle = '#000';
-        ctx.font = '40px sans-serif';
-        ctx.fillText('Game Over', 100, 300);
+    ctx.fillStyle = '#fff';
+    ctx.font = '40px sans-serif';
+    ctx.fillText('Game Over', 100, 250);
+
+    ctx.font = '20px sans-serif';
+    ctx.fillText(`Your time: ${timeSurvived}s`, 120, 300);
+
+    if (timeSurvived >= bestResult) {
+        ctx.fillText(`Best result!`, 140, 330);
+    } else {
+        ctx.fillText(`Best: ${bestResult}s`, 140, 330);
     }
+}
+
 
     // Нарисовать таймер
 ctx.fillStyle = '#fff';
