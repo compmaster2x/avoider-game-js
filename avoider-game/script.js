@@ -10,6 +10,9 @@ let gameOver = false;
 let timeSurvived = 0;
 let meteorsDestroyed = 0;
 let health = 3;
+let gems = parseInt(localStorage.getItem('gems')) || 0;
+let gemDrops = []; // массив падающих алмазов
+let oreHue = 0;
 
 
 let bestResult = localStorage.getItem('bestResult') || 0;
@@ -23,8 +26,12 @@ function spawnObstacle() {
     const x = Math.random() * (canvas.width - size);
     const y = -size;
     const speed = 2 + Math.random() * 3;
-    obstacles.push({ x, y, size, speed });
+
+    const hasOre = Math.random() < 0.2; // 20% шанс быть с рудой (т.е. реже обычных)
+
+    obstacles.push({ x, y, size, speed, hasOre });
 }
+
 
 function spawnCoin() {
     const size = 20;
@@ -43,6 +50,10 @@ function update() {
     if (keys['ArrowRight'] && player.x < canvas.width - player.size) {
         player.x += player.speed;
     }
+
+    oreHue += 1;
+if (oreHue > 360) oreHue = 0;
+
 
     // Двигаем метеоры
     for (let obs of obstacles) {
@@ -74,6 +85,29 @@ function update() {
 
     }
 
+    // Двигаем алмазы
+for (let gem of gemDrops) {
+    gem.y += gem.speed;
+}
+
+// Проверка сбора алмазов
+for (let gem of gemDrops) {
+    if (
+        gem.x < player.x + player.size &&
+        gem.x + gem.size > player.x &&
+        gem.y < player.y + player.size &&
+        gem.y + gem.size > player.y
+    ) {
+        gemDrops.splice(gemDrops.indexOf(gem), 1);
+        gems++;
+        localStorage.setItem('gems', gems);
+    }
+}
+
+// Удаляем алмазы, улетевшие за экран
+gemDrops = gemDrops.filter(gem => gem.y < canvas.height);
+
+
     // Двигаем пули
     for (let bullet of bullets) {
         bullet.y -= bullet.speed;
@@ -82,20 +116,30 @@ function update() {
 
     // Проверка попадания пуль в метеоры
     for (let bullet of bullets) {
-        for (let obs of obstacles) {
-            if (
-                bullet.x < obs.x + obs.size &&
-                bullet.x + bullet.size > obs.x &&
-                bullet.y < obs.y + obs.size &&
-                bullet.y + bullet.size > obs.y
-            ) {
-                obstacles.splice(obstacles.indexOf(obs), 1);
-                bullets.splice(bullets.indexOf(bullet), 1);
-                meteorsDestroyed++;
-                break;
+    for (let obs of obstacles) {
+        if (
+            bullet.x < obs.x + obs.size &&
+            bullet.x + bullet.size > obs.x &&
+            bullet.y < obs.y + obs.size &&
+            bullet.y + bullet.size > obs.y
+        ) {
+            if (obs.hasOre) {
+                // Спавним алмаз
+                gemDrops.push({
+                    x: obs.x + obs.size/2 - 10, 
+                    y: obs.y, 
+                    size: 20, 
+                    speed: obs.speed 
+                });
             }
+            obstacles.splice(obstacles.indexOf(obs), 1);
+            bullets.splice(bullets.indexOf(bullet), 1);
+            meteorsDestroyed++;
+            break;
         }
     }
+}
+
 
     // Двигаем монеты
     for (let coin of coins) {
@@ -112,7 +156,7 @@ function update() {
         ) {
             coins.splice(coins.indexOf(coin), 1);
             let income = Math.floor(1 + Math.random() * 5); // число от 1 до 5
-        wallet += income;
+            wallet += income;
             localStorage.setItem('wallet', wallet);
         }
     }
@@ -132,8 +176,15 @@ function draw() {
     // Obstacles
     ctx.fillStyle = '#f00';
     for (let obs of obstacles) {
-        ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
+    if (obs.hasOre) {
+        ctx.fillStyle = `hsl(${oreHue}, 100%, 50%)`;
+    } else {
+        ctx.fillStyle = '#f00';
     }
+    ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
+}
+
+
 
     // Bullets
     ctx.fillStyle = '#ff0';
@@ -151,6 +202,8 @@ function draw() {
 
     // HUD
     // Сердечки
+    ctx.fillText(`💎: ${gems}`, 10, 110);
+
 ctx.font = '24px sans-serif';
 ctx.textAlign = 'right'; // выравнивание справа
 ctx.fillStyle = '#ff4d4d'; // чуть ярче для эмодзи
@@ -159,6 +212,17 @@ for (let i = 0; i < health; i++) {
     ctx.fillText('❤️', canvas.width - 10 - i * 30, 30);
 }
 ctx.textAlign = 'left'; // возвращаем в дефолт, чтобы другие надписи рисовались как раньше
+
+    ctx.fillStyle = 'cyan';
+for (let gem of gemDrops) {
+    ctx.beginPath();
+    ctx.moveTo(gem.x + gem.size/2, gem.y); // верх
+    ctx.lineTo(gem.x + gem.size, gem.y + gem.size/2); // право
+    ctx.lineTo(gem.x + gem.size/2, gem.y + gem.size); // низ
+    ctx.lineTo(gem.x, gem.y + gem.size/2); // лево
+    ctx.closePath();
+    ctx.fill();
+}
 
 
     ctx.fillStyle = '#fff';
