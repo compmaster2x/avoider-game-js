@@ -18,6 +18,10 @@ let gems = parseInt(localStorage.getItem('gems')) || 0;
 let oreHue = 0;
 let shieldActive = false;
 let shieldTimer = null;
+let doubleGunActive = false;
+let doubleGunEndTime = 0;
+let doubleGunTimer = null;
+
 
 let bestResult = localStorage.getItem('bestResult') || 0;
 let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
@@ -40,7 +44,8 @@ function spawnPowerUp() {
     const x = Math.random() * (canvas.width - size);
     const y = -size;
     const speed = 2;
-    const types = ['heart', 'shield'];
+    const types = ['heart', 'shield', 'gun']; // добавляем 'gun'
+
     const type = types[Math.floor(Math.random() * types.length)];
     powerUps.push({ x, y, size, speed, type });
 }
@@ -80,7 +85,12 @@ shieldEndTime = Date.now() + 15000;
 if (shieldTimer) clearTimeout(shieldTimer);
 shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
 
-            }
+            } else if (pu.type === 'gun') {
+    doubleGunActive = true;
+    doubleGunEndTime = Date.now() + 15000;
+    if (doubleGunTimer) clearTimeout(doubleGunTimer);
+    doubleGunTimer = setTimeout(() => { doubleGunActive = false; }, 15000);
+}
             return false; // удалить из массива
         }
         return pu.y < canvas.height;
@@ -202,6 +212,14 @@ if (shieldActive) {
     ctx.fillText(`🛡️: ${remaining}s`, canvas.width - 80, 60);
 }
 
+if (doubleGunActive) {
+    let remaining = Math.max(0, ((doubleGunEndTime - Date.now()) / 1000).toFixed(1));
+    ctx.fillStyle = '#ff0';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(`🔫: ${remaining}s`, canvas.width - 90, 90);
+}
+
+
     // Метеоры
     obstacles.forEach(obs => {
         ctx.fillStyle = obs.hasOre ? `hsl(${oreHue}, 100%, 50%)` : '#f00';
@@ -213,6 +231,12 @@ if (shieldActive) {
     powerUps.forEach(pu => {
         if (pu.type === 'heart') ctx.fillText('❤️', pu.x, pu.y + pu.size);
         else if (pu.type === 'shield') ctx.fillText('🛡️', pu.x, pu.y + pu.size);
+        else if (pu.type === 'gun') {
+    ctx.fillText('🔫', pu.x, pu.y + pu.size);
+}
+
+        
+
     });
 
     // Пули
@@ -249,7 +273,7 @@ if (shieldActive) {
 
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#ff4d4d';
+    ctx.fillStyle = '#4dffedff';
     for (let i = 0; i < health; i++) {
         ctx.fillText('❤️', canvas.width - 10 - i * 30, 30);
     }
@@ -299,9 +323,18 @@ let keys = {};
 document.addEventListener('keydown', e => {
     keys[e.key] = true;
     if (e.key === ' ') {
-        if (!gameOver) bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
-        else restartGame();
+    if (!gameOver) {
+        if (doubleGunActive) {
+            bullets.push({ x: player.x + 5, y: player.y, size: 5, speed: 7 });
+            bullets.push({ x: player.x + player.size - 10, y: player.y, size: 5, speed: 7 });
+        } else {
+            bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
+        }
+    } else {
+        restartGame();
     }
+}
+
 });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 
