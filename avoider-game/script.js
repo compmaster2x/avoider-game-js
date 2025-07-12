@@ -23,6 +23,9 @@ let doubleGunEndTime = 0;
 let doubleGunTimer = null;
 let lastShotTime = 0;
 let shotDelay = 200; // задержка между выстрелами в миллисекундах (200мс = 0.2 секунды)
+const playerImg = new Image();
+playerImg.src = 'img/player.png';
+
 
 
 let bestResult = localStorage.getItem('bestResult') || 0;
@@ -190,8 +193,8 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Игрок
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(player.x, player.y, player.size, player.size);
+    ctx.drawImage(playerImg, player.x, player.y, player.size, player.size);
+
     if (shieldActive) {
     let remaining = (shieldEndTime - Date.now()) / 1000;
     let alpha = 0.3;
@@ -223,7 +226,7 @@ if (doubleGunActive) {
 ctx.font = '20px sans-serif';
 activePowerUps.forEach((pu, index) => {
     ctx.fillStyle = pu.color;
-    let y = 40 + index * 30; // первый на y=40, второй на y=70 и т.д.
+    let y = 60 + index * 30; // первый на y=40, второй на y=70 и т.д.
     ctx.fillText(`${pu.icon}: ${pu.time}s`, canvas.width - 100, y);
 });
 
