@@ -7,6 +7,8 @@ let bullets = [];
 let coins = [];
 let gemDrops = [];
 let powerUps = [];
+let shieldEndTime = 0;
+
 
 let gameOver = false;
 let timeSurvived = 0;
@@ -74,8 +76,10 @@ function update() {
             if (pu.type === 'heart' && health < 3) health++;
             if (pu.type === 'shield') {
                 shieldActive = true;
-                if (shieldTimer) clearTimeout(shieldTimer);
-                shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
+shieldEndTime = Date.now() + 15000;
+if (shieldTimer) clearTimeout(shieldTimer);
+shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
+
             }
             return false; // удалить из массива
         }
@@ -177,11 +181,26 @@ function draw() {
     ctx.fillStyle = '#0f0';
     ctx.fillRect(player.x, player.y, player.size, player.size);
     if (shieldActive) {
-        ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(player.x + player.size/2, player.y + player.size/2, player.size, 0, Math.PI * 2);
-        ctx.fill();
+    let remaining = (shieldEndTime - Date.now()) / 1000;
+    let alpha = 0.3;
+
+    if (remaining <= 5) {
+        // Мигаем: синус даёт значение от 0 до 1
+        alpha = 0.3 + 0.2 * Math.abs(Math.sin(Date.now() / 200)); 
     }
+
+    ctx.fillStyle = `rgba(0, 200, 255, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(player.x + player.size/2, player.y + player.size/2, player.size, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+if (shieldActive) {
+    let remaining = Math.max(0, ((shieldEndTime - Date.now()) / 1000).toFixed(1));
+    ctx.fillStyle = '#0ff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(`🛡️: ${remaining}s`, canvas.width - 80, 60);
+}
 
     // Метеоры
     obstacles.forEach(obs => {
