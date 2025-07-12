@@ -5,16 +5,17 @@ let player = { x: 200, y: 450, size: 30, speed: 5 };
 let obstacles = [];
 let bullets = [];
 let coins = [];
+let gemDrops = [];
+let powerUps = [];
 
 let gameOver = false;
 let timeSurvived = 0;
 let meteorsDestroyed = 0;
 let health = 3;
 let gems = parseInt(localStorage.getItem('gems')) || 0;
-let gemDrops = []; // массив падающих алмазов
 let oreHue = 0;
-let powerUps = []; // массив усилений
-
+let shieldActive = false;
+let shieldTimer = null;
 
 let bestResult = localStorage.getItem('bestResult') || 0;
 let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
@@ -22,24 +23,23 @@ let wallet = parseInt(localStorage.getItem('wallet')) || 0;
 
 let timerInterval;
 
+// Функции спавна
 function spawnObstacle() {
     const size = 20 + Math.random() * 40;
     const x = Math.random() * (canvas.width - size);
     const y = -size;
     const speed = 2 + Math.random() * 3;
-
-    const hasOre = Math.random() < 0.05; // 20% шанс быть с рудой (т.е. реже обычных)
-
+    const hasOre = Math.random() < 0.05;
     obstacles.push({ x, y, size, speed, hasOre });
 }
 
 function spawnPowerUp() {
-    const size = 20; // размер как монетка
+    const size = 20;
     const x = Math.random() * (canvas.width - size);
     const y = -size;
-    const speed = 2; // средняя скорость
-    const type = 'heart'; // тип усиления, потом можем добавить 'shield', 'bomb' и т.д.
-
+    const speed = 2;
+    const types = ['heart', 'shield'];
+    const type = types[Math.floor(Math.random() * types.length)];
     powerUps.push({ x, y, size, speed, type });
 }
 
@@ -47,281 +47,226 @@ function spawnCoin() {
     const size = 20;
     const x = Math.random() * (canvas.width - size);
     const y = -size;
-    const speed = 2 + Math.random() * 2; // чуть быстрее
+    const speed = 2 + Math.random() * 2;
     coins.push({ x, y, size, speed });
 }
 
+// Игровое обновление
 function update() {
     if (gameOver) return;
 
-    if (keys['ArrowLeft'] && player.x > 0) {
-        player.x -= player.speed;
-    }
-    if (keys['ArrowRight'] && player.x < canvas.width - player.size) {
-        player.x += player.speed;
-    }
+    if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+    if (keys['ArrowRight'] && player.x < canvas.width - player.size) player.x += player.speed;
 
-    oreHue += 1;
-if (oreHue > 360) oreHue = 0;
+    oreHue = (oreHue + 1) % 360;
 
-// Двигаем усиления
-for (let pu of powerUps) {
-    pu.y += pu.speed;
-}
+    // Движение усилений
+    powerUps.forEach(pu => pu.y += pu.speed);
 
-// Проверка сбора
-for (let pu of powerUps) {
-    if (
-        pu.x < player.x + player.size &&
-        pu.x + pu.size > player.x &&
-        pu.y < player.y + player.size &&
-        pu.y + pu.size > player.y
-    ) {
-        powerUps.splice(powerUps.indexOf(pu), 1);
-
-        // обработка типа усиления
-        if (pu.type === 'heart') {
-            if (health < 3) health++;
-        }
-    }
-}
-
-// Убираем улетевшие за экран
-powerUps = powerUps.filter(pu => pu.y < canvas.height);
-
-
-
-    // Двигаем метеоры
-    for (let obs of obstacles) {
-        obs.y += obs.speed;
-
+    // Сбор усилений
+    powerUps = powerUps.filter(pu => {
         if (
-    obs.x < player.x + player.size &&
-    obs.x + obs.size > player.x &&
-    obs.y < player.y + player.size &&
-    obs.y + obs.size > player.y
-) {
-    obstacles.splice(obstacles.indexOf(obs), 1); // убираем метеор
-    health--; // отнимаем жизнь
-
-    if (health <= 0) {
-        gameOver = true;
-
-        if (timeSurvived > bestResult) {
-            bestResult = timeSurvived;
-            localStorage.setItem('bestResult', bestResult);
+            pu.x < player.x + player.size &&
+            pu.x + pu.size > player.x &&
+            pu.y < player.y + player.size &&
+            pu.y + pu.size > player.y
+        ) {
+            if (pu.type === 'heart' && health < 3) health++;
+            if (pu.type === 'shield') {
+                shieldActive = true;
+                if (shieldTimer) clearTimeout(shieldTimer);
+                shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
+            }
+            return false; // удалить из массива
         }
+        return pu.y < canvas.height;
+    });
 
-        if (meteorsDestroyed > bestDestroyed) {
-            bestDestroyed = meteorsDestroyed;
-            localStorage.setItem('bestDestroyed', bestDestroyed);
+    // Движение метеоров
+    obstacles.forEach(obs => obs.y += obs.speed);
+
+    // Проверка столкновения с метеорами
+    obstacles = obstacles.filter(obs => {
+        if (
+            obs.x < player.x + player.size &&
+            obs.x + obs.size > player.x &&
+            obs.y < player.y + player.size &&
+            obs.y + obs.size > player.y
+        ) {
+            if (!shieldActive) {
+                health--;
+                if (health <= 0) {
+                    gameOver = true;
+                    if (timeSurvived > bestResult) {
+                        bestResult = timeSurvived;
+                        localStorage.setItem('bestResult', bestResult);
+                    }
+                    if (meteorsDestroyed > bestDestroyed) {
+                        bestDestroyed = meteorsDestroyed;
+                        localStorage.setItem('bestDestroyed', bestDestroyed);
+                    }
+                }
+            }
+            return false;
         }
-    }
-}
+        return obs.y < canvas.height;
+    });
 
-    }
+    // Движение алмазов
+    gemDrops.forEach(gem => gem.y += gem.speed);
+    gemDrops = gemDrops.filter(gem => {
+        if (
+            gem.x < player.x + player.size &&
+            gem.x + gem.size > player.x &&
+            gem.y < player.y + player.size &&
+            gem.y + gem.size > player.y
+        ) {
+            gems++;
+            localStorage.setItem('gems', gems);
+            return false;
+        }
+        return gem.y < canvas.height;
+    });
 
-    // Двигаем алмазы
-for (let gem of gemDrops) {
-    gem.y += gem.speed;
-}
-
-// Проверка сбора алмазов
-for (let gem of gemDrops) {
-    if (
-        gem.x < player.x + player.size &&
-        gem.x + gem.size > player.x &&
-        gem.y < player.y + player.size &&
-        gem.y + gem.size > player.y
-    ) {
-        gemDrops.splice(gemDrops.indexOf(gem), 1);
-        gems++;
-        localStorage.setItem('gems', gems);
-    }
-}
-
-// Удаляем алмазы, улетевшие за экран
-gemDrops = gemDrops.filter(gem => gem.y < canvas.height);
-
-
-    // Двигаем пули
-    for (let bullet of bullets) {
-        bullet.y -= bullet.speed;
-    }
+    // Движение пуль
+    bullets.forEach(bullet => bullet.y -= bullet.speed);
     bullets = bullets.filter(bullet => bullet.y + bullet.size > 0);
 
     // Проверка попадания пуль в метеоры
-    for (let bullet of bullets) {
-    for (let obs of obstacles) {
-        if (
-            bullet.x < obs.x + obs.size &&
-            bullet.x + bullet.size > obs.x &&
-            bullet.y < obs.y + obs.size &&
-            bullet.y + bullet.size > obs.y
-        ) {
-            if (obs.hasOre) {
-                // Спавним алмаз
-                gemDrops.push({
-                    x: obs.x + obs.size/2 - 10, 
-                    y: obs.y, 
-                    size: 20, 
-                    speed: obs.speed 
-                });
+    bullets = bullets.filter(bullet => {
+        for (let obs of obstacles) {
+            if (
+                bullet.x < obs.x + obs.size &&
+                bullet.x + bullet.size > obs.x &&
+                bullet.y < obs.y + obs.size &&
+                bullet.y + bullet.size > obs.y
+            ) {
+                if (obs.hasOre) {
+                    gemDrops.push({ x: obs.x + obs.size/2 - 10, y: obs.y, size: 20, speed: obs.speed });
+                }
+                obstacles.splice(obstacles.indexOf(obs), 1);
+                meteorsDestroyed++;
+                return false;
             }
-            obstacles.splice(obstacles.indexOf(obs), 1);
-            bullets.splice(bullets.indexOf(bullet), 1);
-            meteorsDestroyed++;
-            break;
         }
-    }
-}
+        return true;
+    });
 
-
-    // Двигаем монеты
-    for (let coin of coins) {
-        coin.y += coin.speed;
-    }
-
-    // Проверка сбора монет
-    for (let coin of coins) {
+    // Движение монет
+    coins.forEach(coin => coin.y += coin.speed);
+    coins = coins.filter(coin => {
         if (
             coin.x < player.x + player.size &&
             coin.x + coin.size > player.x &&
             coin.y < player.y + player.size &&
             coin.y + coin.size > player.y
         ) {
-            coins.splice(coins.indexOf(coin), 1);
-            let income = Math.floor(1 + Math.random() * 5); // число от 1 до 5
-            wallet += income;
+            wallet += Math.floor(1 + Math.random() * 5);
             localStorage.setItem('wallet', wallet);
+            return false;
         }
-    }
-
-    // Удаляем всё, что вышло за экран
-    obstacles = obstacles.filter(obs => obs.y < canvas.height);
-    coins = coins.filter(coin => coin.y < canvas.height);
+        return coin.y < canvas.height;
+    });
 }
 
+// Отрисовка
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Player
+    // Игрок
     ctx.fillStyle = '#0f0';
     ctx.fillRect(player.x, player.y, player.size, player.size);
-
-    // Obstacles
-    ctx.fillStyle = '#f00';
-    for (let obs of obstacles) {
-    if (obs.hasOre) {
-        ctx.fillStyle = `hsl(${oreHue}, 100%, 50%)`;
-    } else {
-        ctx.fillStyle = '#f00';
-    }
-    ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
-}
-
-    for (let pu of powerUps) {
-    if (pu.type === 'heart') {
-        ctx.font = '20px sans-serif';
-        ctx.fillText('❤️', pu.x, pu.y + pu.size); 
-    }
-    // в будущем добавим другие типы
-}
-
-
-    // Bullets
-    ctx.fillStyle = '#ff0';
-    for (let bullet of bullets) {
-        ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size);
-    }
-
-    // Coins
-    ctx.fillStyle = 'gold';
-    for (let coin of coins) {
+    if (shieldActive) {
+        ctx.fillStyle = 'rgba(0, 200, 255, 0.3)';
         ctx.beginPath();
-        ctx.arc(coin.x + coin.size/2, coin.y + coin.size/2, coin.size/2, 0, Math.PI * 2);
+        ctx.arc(player.x + player.size/2, player.y + player.size/2, player.size, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    // HUD
-    // Сердечки
-    ctx.fillText(`💎: ${gems}`, 10, 110);
+    // Метеоры
+    obstacles.forEach(obs => {
+        ctx.fillStyle = obs.hasOre ? `hsl(${oreHue}, 100%, 50%)` : '#f00';
+        ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
+    });
 
-ctx.font = '24px sans-serif';
-ctx.textAlign = 'right'; // выравнивание справа
-ctx.fillStyle = '#ff4d4d'; // чуть ярче для эмодзи
+    // Усиления
+    ctx.font = '20px sans-serif';
+    powerUps.forEach(pu => {
+        if (pu.type === 'heart') ctx.fillText('❤️', pu.x, pu.y + pu.size);
+        else if (pu.type === 'shield') ctx.fillText('🛡️', pu.x, pu.y + pu.size);
+    });
 
-for (let i = 0; i < health; i++) {
-    ctx.fillText('❤️', canvas.width - 10 - i * 30, 30);
-}
-ctx.textAlign = 'left'; // возвращаем в дефолт, чтобы другие надписи рисовались как раньше
+    // Пули
+    ctx.fillStyle = '#ff0';
+    bullets.forEach(bullet => ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size));
 
+    // Монеты
+    ctx.fillStyle = 'gold';
+    coins.forEach(coin => {
+        ctx.beginPath();
+        ctx.arc(coin.x + coin.size/2, coin.y + coin.size/2, coin.size/2, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Алмазы
     ctx.fillStyle = 'cyan';
-for (let gem of gemDrops) {
-    ctx.beginPath();
-    ctx.moveTo(gem.x + gem.size/2, gem.y); // верх
-    ctx.lineTo(gem.x + gem.size, gem.y + gem.size/2); // право
-    ctx.lineTo(gem.x + gem.size/2, gem.y + gem.size); // низ
-    ctx.lineTo(gem.x, gem.y + gem.size/2); // лево
-    ctx.closePath();
-    ctx.fill();
-}
+    gemDrops.forEach(gem => {
+        ctx.beginPath();
+        ctx.moveTo(gem.x + gem.size/2, gem.y);
+        ctx.lineTo(gem.x + gem.size, gem.y + gem.size/2);
+        ctx.lineTo(gem.x + gem.size/2, gem.y + gem.size);
+        ctx.lineTo(gem.x, gem.y + gem.size/2);
+        ctx.closePath();
+        ctx.fill();
+    });
 
-
+    // HUD
     ctx.fillStyle = '#fff';
     ctx.font = '20px sans-serif';
     ctx.fillText(`Time: ${timeSurvived}s`, 10, 20);
     ctx.fillText(`Destroyed: ${meteorsDestroyed}`, 10, 50);
     ctx.fillText(`$: ${wallet}`, 10, 80);
+    ctx.fillText(`💎: ${gems}`, 10, 110);
+
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ff4d4d';
+    for (let i = 0; i < health; i++) {
+        ctx.fillText('❤️', canvas.width - 10 - i * 30, 30);
+    }
+    ctx.textAlign = 'left';
 
     if (gameOver) {
         ctx.font = '40px sans-serif';
         ctx.fillText('Game Over', 100, 250);
-
         ctx.font = '20px sans-serif';
         ctx.fillText(`Your time: ${timeSurvived}s`, 120, 300);
-        if (timeSurvived >= bestResult) {
-            ctx.fillText(`Best result!`, 140, 330);
-        } else {
-            ctx.fillText(`Best: ${bestResult}s`, 140, 330);
-        }
-
+        if (timeSurvived >= bestResult) ctx.fillText(`Best result!`, 140, 330);
+        else ctx.fillText(`Best: ${bestResult}s`, 140, 330);
         ctx.fillText(`Destroyed: ${meteorsDestroyed}`, 120, 360);
-        if (meteorsDestroyed >= bestDestroyed) {
-            ctx.fillText(`Record destroyed!`, 130, 390);
-        } else {
-            ctx.fillText(`Best destroyed: ${bestDestroyed}`, 130, 390);
-        }
+        if (meteorsDestroyed >= bestDestroyed) ctx.fillText(`Record destroyed!`, 130, 390);
+        else ctx.fillText(`Best destroyed: ${bestDestroyed}`, 130, 390);
     }
 }
 
+// Перезапуск
 function restartGame() {
     player = { x: 200, y: 450, size: 30, speed: 5 };
     obstacles = [];
     bullets = [];
     coins = [];
-    gameOver = false;
+    gemDrops = [];
+    powerUps = [];
     timeSurvived = 0;
     meteorsDestroyed = 0;
     health = 3;
-    powerUps = [];
-
+    gameOver = false;
 
     clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        if (!gameOver) timeSurvived++;
-    }, 1000);
+    timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
 
     gameLoop();
 }
-
-// Таймер
-timerInterval = setInterval(() => {
-    if (!gameOver) timeSurvived++;
-}, 1000);
-
-
-
 
 // Игровой цикл
 function gameLoop() {
@@ -335,22 +280,23 @@ let keys = {};
 document.addEventListener('keydown', e => {
     keys[e.key] = true;
     if (e.key === ' ') {
-        if (!gameOver) {
-            bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
-        } else {
-            restartGame();
-        }
+        if (!gameOver) bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
+        else restartGame();
     }
 });
-document.addEventListener('keyup', e => {
-    keys[e.key] = false;
-});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
 
-// Спавним метеоры и монеты
+// Таймер
+timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
+
+// Спавн объектов
 setInterval(() => { if (!gameOver) spawnObstacle(); }, 1000);
-setInterval(() => { if (!gameOver) spawnCoin(); }, 2000); // чаще, раз в 2 сек
-setInterval(() => {
+setInterval(() => { if (!gameOver) spawnCoin(); }, 2000);
+function spawnPowerUpWithRandomDelay() {
     if (!gameOver) spawnPowerUp();
-}, 10000 + Math.random() * 20000); // раз в 10 секунд
+    setTimeout(spawnPowerUpWithRandomDelay, 10000 + Math.random() * 5000);
+}
+spawnPowerUpWithRandomDelay();
+
 // Старт
 gameLoop();
