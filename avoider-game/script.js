@@ -205,19 +205,26 @@ function draw() {
     ctx.fill();
 }
 
+let activePowerUps = [];
+
 if (shieldActive) {
     let remaining = Math.max(0, ((shieldEndTime - Date.now()) / 1000).toFixed(1));
-    ctx.fillStyle = '#0ff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(`🛡️: ${remaining}s`, canvas.width - 80, 60);
+    activePowerUps.push({ icon: '🛡️', time: remaining, color: '#0ff' });
 }
 
 if (doubleGunActive) {
     let remaining = Math.max(0, ((doubleGunEndTime - Date.now()) / 1000).toFixed(1));
-    ctx.fillStyle = '#ff0';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(`🔫: ${remaining}s`, canvas.width - 90, 90);
+    activePowerUps.push({ icon: '🔫', time: remaining, color: '#ff0' });
 }
+
+// Рисуем их динамически
+ctx.font = '20px sans-serif';
+activePowerUps.forEach((pu, index) => {
+    ctx.fillStyle = pu.color;
+    let y = 40 + index * 30; // первый на y=40, второй на y=70 и т.д.
+    ctx.fillText(`${pu.icon}: ${pu.time}s`, canvas.width - 100, y);
+});
+
 
 
     // Метеоры
