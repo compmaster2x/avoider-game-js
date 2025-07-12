@@ -8,6 +8,15 @@ let coins = [];
 let gemDrops = [];
 let powerUps = [];
 let shieldEndTime = 0;
+const meteorImgs = [
+    new Image(),
+    new Image(),
+    new Image()
+];
+meteorImgs[0].src = 'img/meteor1.png';
+meteorImgs[1].src = 'img/meteor2.png';
+meteorImgs[2].src = 'img/meteor3.png';
+
 
 
 let gameOver = false;
@@ -41,8 +50,10 @@ function spawnObstacle() {
     const y = -size;
     const speed = 2 + Math.random() * 3;
     const hasOre = Math.random() < 0.05;
-    obstacles.push({ x, y, size, speed, hasOre });
+    const spriteIndex = Math.floor(Math.random() * meteorImgs.length);
+    obstacles.push({ x, y, size, speed, hasOre, spriteIndex });
 }
+
 
 function spawnPowerUp() {
     const size = 20;
@@ -234,8 +245,15 @@ activePowerUps.forEach((pu, index) => {
 
     // Метеоры
     obstacles.forEach(obs => {
-        ctx.fillStyle = obs.hasOre ? `hsl(${oreHue}, 100%, 50%)` : '#f00';
-        ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
+        if (obs.hasOre) {
+    // Для метеоров с рудой можно оставить подсветку или эффект
+    ctx.fillStyle = `hsl(${oreHue}, 100%, 50%)`;
+    ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
+} else {
+    const img = meteorImgs[obs.spriteIndex];
+    ctx.drawImage(img, obs.x, obs.y, obs.size, obs.size);
+}
+
     });
 
     // Усиления
