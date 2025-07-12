@@ -13,6 +13,7 @@ let health = 3;
 let gems = parseInt(localStorage.getItem('gems')) || 0;
 let gemDrops = []; // массив падающих алмазов
 let oreHue = 0;
+let powerUps = []; // массив усилений
 
 
 let bestResult = localStorage.getItem('bestResult') || 0;
@@ -27,11 +28,20 @@ function spawnObstacle() {
     const y = -size;
     const speed = 2 + Math.random() * 3;
 
-    const hasOre = Math.random() < 0.2; // 20% шанс быть с рудой (т.е. реже обычных)
+    const hasOre = Math.random() < 0.05; // 20% шанс быть с рудой (т.е. реже обычных)
 
     obstacles.push({ x, y, size, speed, hasOre });
 }
 
+function spawnPowerUp() {
+    const size = 20; // размер как монетка
+    const x = Math.random() * (canvas.width - size);
+    const y = -size;
+    const speed = 2; // средняя скорость
+    const type = 'heart'; // тип усиления, потом можем добавить 'shield', 'bomb' и т.д.
+
+    powerUps.push({ x, y, size, speed, type });
+}
 
 function spawnCoin() {
     const size = 20;
@@ -53,6 +63,32 @@ function update() {
 
     oreHue += 1;
 if (oreHue > 360) oreHue = 0;
+
+// Двигаем усиления
+for (let pu of powerUps) {
+    pu.y += pu.speed;
+}
+
+// Проверка сбора
+for (let pu of powerUps) {
+    if (
+        pu.x < player.x + player.size &&
+        pu.x + pu.size > player.x &&
+        pu.y < player.y + player.size &&
+        pu.y + pu.size > player.y
+    ) {
+        powerUps.splice(powerUps.indexOf(pu), 1);
+
+        // обработка типа усиления
+        if (pu.type === 'heart') {
+            if (health < 3) health++;
+        }
+    }
+}
+
+// Убираем улетевшие за экран
+powerUps = powerUps.filter(pu => pu.y < canvas.height);
+
 
 
     // Двигаем метеоры
@@ -184,6 +220,13 @@ function draw() {
     ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
 }
 
+    for (let pu of powerUps) {
+    if (pu.type === 'heart') {
+        ctx.font = '20px sans-serif';
+        ctx.fillText('❤️', pu.x, pu.y + pu.size); 
+    }
+    // в будущем добавим другие типы
+}
 
 
     // Bullets
@@ -261,6 +304,8 @@ function restartGame() {
     timeSurvived = 0;
     meteorsDestroyed = 0;
     health = 3;
+    powerUps = [];
+
 
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
@@ -274,6 +319,9 @@ function restartGame() {
 timerInterval = setInterval(() => {
     if (!gameOver) timeSurvived++;
 }, 1000);
+
+
+
 
 // Игровой цикл
 function gameLoop() {
@@ -301,6 +349,8 @@ document.addEventListener('keyup', e => {
 // Спавним метеоры и монеты
 setInterval(() => { if (!gameOver) spawnObstacle(); }, 1000);
 setInterval(() => { if (!gameOver) spawnCoin(); }, 2000); // чаще, раз в 2 сек
-
+setInterval(() => {
+    if (!gameOver) spawnPowerUp();
+}, 10000 + Math.random() * 20000); // раз в 10 секунд
 // Старт
 gameLoop();
