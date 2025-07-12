@@ -21,6 +21,8 @@ let shieldTimer = null;
 let doubleGunActive = false;
 let doubleGunEndTime = 0;
 let doubleGunTimer = null;
+let lastShotTime = 0;
+let shotDelay = 200; // задержка между выстрелами в миллисекундах (200мс = 0.2 секунды)
 
 
 let bestResult = localStorage.getItem('bestResult') || 0;
@@ -330,19 +332,26 @@ let keys = {};
 document.addEventListener('keydown', e => {
     keys[e.key] = true;
     if (e.key === ' ') {
-    if (!gameOver) {
-        if (doubleGunActive) {
-            bullets.push({ x: player.x + 5, y: player.y, size: 5, speed: 7 });
-            bullets.push({ x: player.x + player.size - 10, y: player.y, size: 5, speed: 7 });
-        } else {
-            bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
-        }
-    } else {
-        restartGame();
-    }
-}
+        if (!gameOver) {
+            let now = Date.now();
+            if (now - lastShotTime >= shotDelay) {
+                lastShotTime = now;
 
+                if (doubleGunActive) {
+                    bullets.push(
+                        { x: player.x + 5, y: player.y, size: 5, speed: 7 },
+                        { x: player.x + player.size - 10, y: player.y, size: 5, speed: 7 }
+                    );
+                } else {
+                    bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
+                }
+            }
+        } else {
+            restartGame();
+        }
+    }
 });
+
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 
 // Таймер
