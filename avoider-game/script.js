@@ -16,6 +16,15 @@ const meteorImgs = [
 meteorImgs[0].src = 'img/meteor1.png';
 meteorImgs[1].src = 'img/meteor2.png';
 meteorImgs[2].src = 'img/meteor3.png';
+// Фоновая музыка
+const bgMusic = new Audio('sounds/music.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.5; // громкость от 0 до 1
+
+// Звуки
+const shootSound = new Audio('sounds/shoot.mp3');
+const explosionSound = new Audio('sounds/explosion.wav');
+
 
 
 let gameOver = false;
@@ -45,6 +54,7 @@ let bestResult = localStorage.getItem('bestResult') || 0;
 let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
 let wallet = parseInt(localStorage.getItem('wallet')) || 0;
 let timerInterval;
+let musicStarted = false;
 
 // Функции спавна
 function spawnObstacle() {
@@ -201,6 +211,8 @@ shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
                 }
                 obstacles.splice(obstacles.indexOf(obs), 1);
                 meteorsDestroyed++;
+                explosionSound.currentTime = 0;
+                explosionSound.play();
                 return false;
             }
         }
@@ -395,7 +407,10 @@ function gameLoop() {
 let keys = {};
 document.addEventListener('keydown', e => {
     keys[e.key] = true;
-
+    if (!musicStarted) {
+    bgMusic.play();
+    musicStarted = true;
+}
     if (e.key === 'p' || e.key === 'P') {
     if (!gameOver) {
         paused = !paused;
@@ -443,10 +458,19 @@ document.addEventListener('keydown', e => {
                 } else {
                     bullets.push({ x: player.x + player.size/2 - 2, y: player.y, size: 5, speed: 7 });
                 }
+                shootSound.currentTime = 0;
+                shootSound.play();
+
             }
         } else {
             restartGame();
         }
+
+        if (!musicStarted) {
+    bgMusic.play();
+    musicStarted = true;
+}
+
     }
 });
 
