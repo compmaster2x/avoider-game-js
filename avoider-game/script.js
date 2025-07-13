@@ -18,7 +18,6 @@ meteorImgs[1].src = 'img/meteor2.png';
 meteorImgs[2].src = 'img/meteor3.png';
 
 
-
 let gameOver = false;
 let timeSurvived = 0;
 let meteorsDestroyed = 0;
@@ -40,11 +39,11 @@ let pausedGunRemaining = null;
 let pauseStartTime = null;
 let lastObstacleSpawn = Date.now();
 let lastCoinSpawn = Date.now();
-
+let lastPowerUpSpawn = Date.now();
+let nextPowerUpDelay = 10000 + Math.random() * 5000;
 let bestResult = localStorage.getItem('bestResult') || 0;
 let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
 let wallet = parseInt(localStorage.getItem('wallet')) || 0;
-
 let timerInterval;
 
 // Функции спавна
@@ -101,6 +100,13 @@ if (now - lastCoinSpawn > 2000) { // 2 секунды
     lastCoinSpawn = now;
 }
 
+    let now1 = Date.now();
+
+if (now1 - lastPowerUpSpawn > nextPowerUpDelay) {
+    spawnPowerUp();
+    lastPowerUpSpawn = now1;
+    nextPowerUpDelay = 10000 + Math.random() * 5000;
+}
 
     // Движение усилений
     powerUps.forEach(pu => pu.y += pu.speed);
@@ -448,15 +454,6 @@ document.addEventListener('keyup', e => { keys[e.key] = false; });
 
 // Таймер
 timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
-
-// Спавн объектов
-// setInterval(() => { if (!gameOver) spawnObstacle(); }, 1000);
-// setInterval(() => { if (!gameOver) spawnCoin(); }, 2000);
-function spawnPowerUpWithRandomDelay() {
-    if (!gameOver) spawnPowerUp();
-    setTimeout(spawnPowerUpWithRandomDelay, 10000 + Math.random() * 5000);
-}
-spawnPowerUpWithRandomDelay();
 
 // Старт
 gameLoop();
