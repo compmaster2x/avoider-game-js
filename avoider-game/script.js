@@ -34,6 +34,8 @@ let lastShotTime = 0;
 let shotDelay = 200; // задержка между выстрелами в миллисекундах (200мс = 0.2 секунды)
 const playerImg = new Image();
 playerImg.src = 'img/player.png';
+let paused = false;
+
 
 
 
@@ -77,7 +79,7 @@ function spawnCoin() {
 
 // Игровое обновление
 function update() {
-    if (gameOver) return;
+    if (gameOver || paused) return;
 
     if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
     if (keys['ArrowRight'] && player.x < canvas.width - player.size) player.x += player.speed;
@@ -326,6 +328,18 @@ activePowerUps.forEach((pu, index) => {
         if (meteorsDestroyed >= bestDestroyed) ctx.fillText(`Record destroyed!`, 130, 390);
         else ctx.fillText(`Best destroyed: ${bestDestroyed}`, 130, 390);
     }
+
+    if (paused && !gameOver) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; // полупрозрачный фон
+    ctx.fillRect(0, canvas.height/2 - 50, canvas.width, 100);
+
+    ctx.font = '40px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText('Пауза', canvas.width/2, canvas.height/2 + 10);
+    ctx.textAlign = 'left';
+}
+
 }
 
 // Перезапуск
@@ -351,13 +365,24 @@ function restartGame() {
 function gameLoop() {
     update();
     draw();
-    if (!gameOver) requestAnimationFrame(gameLoop);
+    if (!gameOver && !paused) requestAnimationFrame(gameLoop);
+
 }
 
 // Управление
 let keys = {};
 document.addEventListener('keydown', e => {
     keys[e.key] = true;
+
+    if (e.key === 'p' || e.key === 'P') {
+    if (!gameOver) {
+        paused = !paused;
+        if (!paused) {
+            gameLoop(); // если убираем паузу, перезапускаем цикл
+        }
+    }
+}
+
     if (e.key === ' ') {
         if (!gameOver) {
             let now = Date.now();
