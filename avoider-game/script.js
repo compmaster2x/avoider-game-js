@@ -50,8 +50,9 @@ function spawnObstacle() {
     const y = -size;
     const speed = 2 + Math.random() * 3;
     const hasOre = Math.random() < 0.05;
-    const spriteIndex = Math.floor(Math.random() * meteorImgs.length);
-    obstacles.push({ x, y, size, speed, hasOre, spriteIndex });
+    const imgIndex = Math.floor(Math.random() * meteorImgs.length);
+    const img = meteorImgs[imgIndex];
+    obstacles.push({ x, y, size, speed, hasOre, img });
 }
 
 
@@ -244,17 +245,22 @@ activePowerUps.forEach((pu, index) => {
 
 
     // Метеоры
-    obstacles.forEach(obs => {
-        if (obs.hasOre) {
-    // Для метеоров с рудой можно оставить подсветку или эффект
-    ctx.fillStyle = `hsl(${oreHue}, 100%, 50%)`;
-    ctx.fillRect(obs.x, obs.y, obs.size, obs.size);
-} else {
-    const img = meteorImgs[obs.spriteIndex];
-    ctx.drawImage(img, obs.x, obs.y, obs.size, obs.size);
-}
+   obstacles.forEach(obs => {
+    ctx.drawImage(obs.img, obs.x, obs.y, obs.size, obs.size);
 
-    });
+    if (obs.hasOre) {
+        // Цветное свечение вокруг
+        ctx.fillStyle = `hsla(${oreHue}, 100%, 50%, 0.3)`;
+        ctx.beginPath();
+        ctx.arc(
+            obs.x + obs.size/2,
+            obs.y + obs.size/2,
+            obs.size/1.5, // радиус чуть больше
+            0, Math.PI * 2
+        );
+        ctx.fill();
+    }
+});
 
     // Усиления
     ctx.font = '20px sans-serif';
