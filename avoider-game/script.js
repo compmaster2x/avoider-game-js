@@ -38,9 +38,8 @@ let paused = false;
 let pausedShieldRemaining = null;
 let pausedGunRemaining = null;
 let pauseStartTime = null;
-
-
-
+let lastObstacleSpawn = Date.now();
+let lastCoinSpawn = Date.now();
 
 let bestResult = localStorage.getItem('bestResult') || 0;
 let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
@@ -84,10 +83,24 @@ function spawnCoin() {
 function update() {
     if (gameOver || paused) return;
 
+
     if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
     if (keys['ArrowRight'] && player.x < canvas.width - player.size) player.x += player.speed;
 
     oreHue = (oreHue + 1) % 360;
+
+    let now = Date.now();
+
+if (now - lastObstacleSpawn > 1000) { // 1 секунда
+    spawnObstacle();
+    lastObstacleSpawn = now;
+}
+
+if (now - lastCoinSpawn > 2000) { // 2 секунды
+    spawnCoin();
+    lastCoinSpawn = now;
+}
+
 
     // Движение усилений
     powerUps.forEach(pu => pu.y += pu.speed);
@@ -437,8 +450,8 @@ document.addEventListener('keyup', e => { keys[e.key] = false; });
 timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
 
 // Спавн объектов
-setInterval(() => { if (!gameOver) spawnObstacle(); }, 1000);
-setInterval(() => { if (!gameOver) spawnCoin(); }, 2000);
+// setInterval(() => { if (!gameOver) spawnObstacle(); }, 1000);
+// setInterval(() => { if (!gameOver) spawnCoin(); }, 2000);
 function spawnPowerUpWithRandomDelay() {
     if (!gameOver) spawnPowerUp();
     setTimeout(spawnPowerUpWithRandomDelay, 10000 + Math.random() * 5000);
