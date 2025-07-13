@@ -13,6 +13,14 @@ const meteorImgs = [
     new Image(),
     new Image()
 ];
+const enemyImgs = [
+    new Image(),
+    new Image(),
+    new Image()
+];
+enemyImgs[0].src = 'img/enemy1.png';
+enemyImgs[1].src = 'img/enemy2.png';
+enemyImgs[2].src = 'img/enemy3.png';
 meteorImgs[0].src = 'img/meteor1.png';
 meteorImgs[1].src = 'img/meteor2.png';
 meteorImgs[2].src = 'img/meteor3.png';
@@ -55,6 +63,8 @@ let bestDestroyed = localStorage.getItem('bestDestroyed') || 0;
 let wallet = parseInt(localStorage.getItem('wallet')) || 0;
 let timerInterval;
 let musicStarted = false;
+let enemies = [];
+let enemyBullets = [];
 
 // Функции спавна
 function spawnObstacle() {
@@ -87,6 +97,30 @@ function spawnCoin() {
     const speed = 2 + Math.random() * 2;
     coins.push({ x, y, size, speed });
 }
+
+function spawnEnemy() {
+    const size = 40;
+    const x = Math.random() * (canvas.width - size);
+    const y = -size;
+    const speedX = 1 + Math.random() * 1.5;
+    const direction = Math.random() < 0.5 ? 1 : -1;
+    const img = enemyImgs[Math.floor(Math.random() * enemyImgs.length)];
+    enemies.push({
+        x,
+        y,
+        size,
+        speedX,
+        direction,
+        img,
+        lastShotTime: Date.now(),
+        arrived: false,
+        health: 3,
+        isHit: false,            // новый флаг
+    lastHitTime: 0
+    });
+}
+
+
 
 // Игровое обновление
 function update() {
@@ -193,6 +227,57 @@ shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
         return gem.y < canvas.height;
     });
 
+    // Движение врагов
+enemies.forEach(enemy => {
+    if (!enemy.arrived) {
+        // пока не достиг нужной высоты – опускаем вниз
+        enemy.y += 1; // скорость появления, можешь поменять
+        if (enemy.y >= 20) {
+            enemy.arrived = true; // достиг нужной высоты
+        }
+    } else {
+        // движение влево-вправо
+        enemy.x += enemy.speedX * enemy.direction;
+
+        // смена направления у краёв
+        if (enemy.x <= 0 || enemy.x + enemy.size >= canvas.width) {
+            enemy.direction *= -1;
+        }
+
+        // стрельба раз в 3 секунды
+        if (Date.now() - enemy.lastShotTime > 3000) {
+            enemy.lastShotTime = Date.now();
+            enemyBullets.push({
+                x: enemy.x + enemy.size/2 - 2,
+                y: enemy.y + enemy.size,
+                size: 5,
+                speed: 4
+            });
+        }
+    }
+});
+
+    
+    enemyBullets.forEach(bullet => bullet.y += bullet.speed);
+    enemyBullets = enemyBullets.filter(bullet => bullet.y < canvas.height);
+
+    enemyBullets = enemyBullets.filter(bullet => {
+    if (
+        bullet.x < player.x + player.size &&
+        bullet.x + bullet.size > player.x &&
+        bullet.y < player.y + player.size &&
+        bullet.y + bullet.size > player.y
+    ) {
+        if (!shieldActive) {
+            health--;
+            if (health <= 0) gameOver = true;
+        }
+        return false;
+    }
+    return true;
+});
+
+
     // Движение пуль
     bullets.forEach(bullet => bullet.y -= bullet.speed);
     bullets = bullets.filter(bullet => bullet.y + bullet.size > 0);
@@ -218,6 +303,52 @@ shieldTimer = setTimeout(() => { shieldActive = false; }, 15000);
         }
         return true;
     });
+
+    bullets = bullets.filter(bullet => {
+    let hit = false;
+
+    // Проверяем столкновение с метеорами (у тебя уже есть)
+    for (let obs of obstacles) {
+        if (
+            bullet.x < obs.x + obs.size &&
+            bullet.x + bullet.size > obs.x &&
+            bullet.y < obs.y + obs.size &&
+            bullet.y + bullet.size > obs.y
+        ) {
+            if (obs.hasOre) {
+                gemDrops.push({ x: obs.x + obs.size/2 - 10, y: obs.y, size: 20, speed: obs.speed });
+            }
+            obstacles.splice(obstacles.indexOf(obs), 1);
+            meteorsDestroyed++;
+            hit = true;
+            break;
+        }
+    }
+
+    // Проверяем столкновение с врагами
+    for (let enemy of enemies) {
+        if (
+            bullet.x < enemy.x + enemy.size &&
+            bullet.x + bullet.size > enemy.x &&
+            bullet.y < enemy.y + enemy.size &&
+            bullet.y + bullet.size > enemy.y
+        ) {
+            enemy.health--;
+            if (enemy.health <= 0) {
+                enemies.splice(enemies.indexOf(enemy), 1);
+            }
+
+            enemy.isHit = true;
+enemy.lastHitTime = Date.now();
+
+            hit = true;
+            break;
+        }
+    }
+
+    return !hit; // если пуля попала, удаляем её
+});
+
 
     // Движение монет
     coins.forEach(coin => coin.y += coin.speed);
@@ -277,6 +408,24 @@ activePowerUps.forEach((pu, index) => {
     let y = 60 + index * 30; // первый на y=40, второй на y=70 и т.д.
     ctx.fillText(`${pu.icon}: ${pu.time}s`, canvas.width - 100, y);
 });
+
+// Враги
+enemies.forEach(enemy => {
+    if (enemy.isHit && Date.now() - enemy.lastHitTime < 100) {
+        // рисуем с красным оттенком
+        ctx.fillStyle = 'rgba(255,0,0,0.5)';
+        ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
+    } else {
+        // обычный рисунок
+        ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.size, enemy.size);
+    }
+});
+
+
+// Вражеские пули
+ctx.fillStyle = 'red';
+enemyBullets.forEach(bullet => ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size));
+
 
 
 
@@ -388,6 +537,10 @@ function restartGame() {
     meteorsDestroyed = 0;
     health = 3;
     gameOver = false;
+    bgMusic.currentTime = 0;
+bgMusic.play();
+musicStarted = true;
+
 
     clearInterval(timerInterval);
     timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
@@ -478,6 +631,8 @@ document.addEventListener('keyup', e => { keys[e.key] = false; });
 
 // Таймер
 timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
+setInterval(() => { if (!gameOver) spawnEnemy(); }, 8000);
+
 
 // Старт
 gameLoop();
