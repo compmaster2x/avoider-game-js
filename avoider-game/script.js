@@ -35,6 +35,9 @@ let shotDelay = 200; // задержка между выстрелами в ми
 const playerImg = new Image();
 playerImg.src = 'img/player.png';
 let paused = false;
+let pausedShieldRemaining = null;
+let pausedGunRemaining = null;
+let pauseStartTime = null;
 
 
 
@@ -377,11 +380,35 @@ document.addEventListener('keydown', e => {
     if (e.key === 'p' || e.key === 'P') {
     if (!gameOver) {
         paused = !paused;
-        if (!paused) {
-            gameLoop(); // если убираем паузу, перезапускаем цикл
+        if (paused) {
+            // Входим в паузу
+            pauseStartTime = Date.now();
+            if (shieldActive) pausedShieldRemaining = shieldEndTime - Date.now();
+            if (doubleGunActive) pausedGunRemaining = doubleGunEndTime - Date.now();
+
+            // Очищаем старые таймеры
+            if (shieldTimer) clearTimeout(shieldTimer);
+            if (doubleGunTimer) clearTimeout(doubleGunTimer);
+
+        } else {
+            // Выходим из паузы
+            const pauseDuration = Date.now() - pauseStartTime;
+
+            if (shieldActive && pausedShieldRemaining > 0) {
+                shieldEndTime = Date.now() + pausedShieldRemaining;
+                shieldTimer = setTimeout(() => { shieldActive = false; }, pausedShieldRemaining);
+            }
+
+            if (doubleGunActive && pausedGunRemaining > 0) {
+                doubleGunEndTime = Date.now() + pausedGunRemaining;
+                doubleGunTimer = setTimeout(() => { doubleGunActive = false; }, pausedGunRemaining);
+            }
+
+            gameLoop(); // продолжаем цикл
         }
     }
 }
+
 
     if (e.key === ' ') {
         if (!gameOver) {
