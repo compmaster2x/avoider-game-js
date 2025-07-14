@@ -13,3 +13,49 @@ body{
 canvas{
     background-color: darkviolet;
 }
+
+/* Выдвижная панель */
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: -200px; /* начальное положение за пределами экрана */
+  width: 200px;
+  height: 100%;
+  background: #333;
+  color: #fff;
+  padding: 20px;
+  box-sizing: border-box;
+  transition: left 0.3s;
+  z-index: 100;
+}
+
+/* Активное состояние */
+#sidebar.active {
+  left: 0;
+}
+
+/* Бургер */
+#burger {
+  position: fixed;
+  /* top: 10px; */
+  bottom: 10px;
+  left: 10px;
+  font-size: 30px;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(0,0,0,0.5);
+  padding: 5px 10px;
+  border-radius: 4px;
+  z-index: 101;
+}
+
+/* Стили для элементов меню */
+#sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+#sidebar ul li {
+  margin: 10px 0;
+  cursor: pointer;
+}

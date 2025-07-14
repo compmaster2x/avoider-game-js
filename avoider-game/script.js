@@ -1,6 +1,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
+const burger = document.getElementById('burger');
+  const sidebar = document.getElementById('sidebar');
+  
 let player = { x: 200, y: 450, size: 30, speed: 5 };
 let obstacles = [];
 let bullets = [];
@@ -628,7 +630,11 @@ document.addEventListener('keydown', e => {
 });
 
 document.addEventListener('keyup', e => { keys[e.key] = false; });
+burger.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+  });
 
+  
 // Таймер
 timerInterval = setInterval(() => { if (!gameOver) timeSurvived++; }, 1000);
 setInterval(() => { if (!gameOver) spawnEnemy(); }, 8000);
